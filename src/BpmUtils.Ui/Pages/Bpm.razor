@@ -1,0 +1,48 @@
+﻿@page "/"
+<h3>BPM Finder</h3>
+
+<button @onclick="AddTap">Tap!</button>
+<button @onclick="ResetTaps">Reset</button>
+
+<p>Taps: <span id="taps">@this.Taps</span></p>
+<p>BPM: <span id="bpm">@this.CurrentBpm</span></p>
+
+@code {
+    private int Taps { get; set; }
+    private int CurrentBpm { get; set; }
+    private IList<long> BpmList { get; } = new List<long>();
+    private long PreviousTick { get; set; }
+    private long CurrentTick { get; set; }
+
+    private void AddTap()
+    {
+        this.Taps += 1;
+
+        this.PreviousTick = this.CurrentTick;
+        this.CurrentTick = DateTime.Now.Ticks;
+
+        this.BpmList.Add(600_000_000 / (this.CurrentTick - this.PreviousTick));
+
+        var mean = this.BpmList.Average();
+        var sum = this.BpmList.Sum(d => Math.Pow(d - mean, 2));
+        var standardDeviation = Math.Sqrt(sum / (this.BpmList.Count-1));
+        var lower = mean - 2 * standardDeviation;
+        var upper = mean + 2 * standardDeviation;
+
+        var filter = this.BpmList.Where(x => x >= lower && x <= upper).ToList();
+
+        if (filter.Count > 1)
+        {
+            this.CurrentBpm = (int)filter.Average();
+        }
+    }
+
+    private void ResetTaps()
+    {
+        this.Taps = 0;
+        this.CurrentBpm = 0;
+        this.BpmList.Clear();
+        this.PreviousTick = 0;
+        this.CurrentTick = 0;
+    }
+}
